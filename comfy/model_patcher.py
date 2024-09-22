@@ -16,6 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from line_profiler import LineProfiler
+lp = LineProfiler()
 import torch
 import copy
 import inspect
@@ -305,6 +307,7 @@ class ModelPatcher:
                     sd.pop(k)
         return sd
 
+    @lp
     def patch_weight_to_device(self, key, device_to=None, inplace_update=False):
         if key not in self.patches:
             return
@@ -326,6 +329,7 @@ class ModelPatcher:
             comfy.utils.copy_to_param(self.model, key, out_weight)
         else:
             comfy.utils.set_attr_param(self.model, key, out_weight)
+        lp.print_stats(output_unit=0.1)
 
     def load(self, device_to=None, lowvram_model_memory=0, force_patch_weights=False, full_load=False):
         mem_counter = 0

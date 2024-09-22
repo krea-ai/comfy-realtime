@@ -40,6 +40,19 @@ def load_lora_for_models(model, clip, lora, strength_model, strength_clip):
         key_map = comfy.lora.model_lora_keys_clip(clip.cond_stage_model, key_map)
 
     loaded = comfy.lora.load_lora(lora, key_map)
+    
+    from torch._dynamo import OptimizedModule
+    if isinstance(model.model.diffusion_model, OptimizedModule):
+        print("replacing keys for compiled model")
+        compiled_model_dict = {}
+        for k, v in loaded.items():
+            if isinstance(k, str):
+                k = k.replace("diffusion_model.", "diffusion_model._orig_mod.")
+            elif isinstance(k, tuple):
+                k = (k[0].replace("diffusion_model.", "diffusion_model._orig_mod."),) + k[1:]
+            compiled_model_dict[k] = v
+        loaded = compiled_model_dict
+    
     if model is not None:
         new_modelpatcher = model.clone()
         k = new_modelpatcher.add_patches(loaded, strength_model)
